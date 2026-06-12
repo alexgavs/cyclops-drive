@@ -1,7 +1,7 @@
 // Cyclops Drive service worker — offline app shell + camera DB, cached map tiles.
-const V = 'cyclops-v1';
+const V = 'cyclops-v2';
 const SHELL = [
-  './', './index.html', './cameras.json', './manifest.webmanifest', './icon.svg',
+  './', './index.html', './cameras.json', './phrases.js', './manifest.webmanifest', './icon.svg',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
 ];

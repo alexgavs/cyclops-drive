@@ -10,27 +10,26 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  :root{--bg:#0f1115;--fg:#fff;--mut:#9aa0aa;--ok:#19c37d;--warn:#ffb000;--bad:#ff3b30}
+  :root{--bg:#0f1115;--fg:#fff;--mut:#9aa0aa;--ok:#19c37d;--warn:#ffb000;--bad:#ff3b30;--rl:#ff5a3c}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;font-family:Segoe UI,Roboto,system-ui,Arial,sans-serif;background:var(--bg);color:var(--fg);overflow:hidden}
   #map{position:absolute;inset:0}
-  /* top HUD */
   #hud{position:absolute;top:0;left:0;right:0;z-index:1000;display:flex;gap:8px;padding:8px;pointer-events:none}
   .card{background:rgba(16,18,22,.86);backdrop-filter:blur(6px);border:1px solid #2a2e37;border-radius:14px;padding:10px 14px;pointer-events:auto}
   #spd{display:flex;flex-direction:column;align-items:center;min-width:104px}
   #spd .v{font-size:46px;font-weight:800;line-height:1}
   #spd .u{font-size:11px;color:var(--mut);letter-spacing:1px}
   #spd.over .v{color:var(--bad)}
-  #alert{flex:1;display:flex;align-items:center;gap:12px;min-height:70px;opacity:.5}
+  #alert{flex:1;display:flex;align-items:center;gap:12px;min-height:74px;opacity:.5;transition:border-color .15s}
   #alert.active{opacity:1;border-color:var(--warn)}
-  #alert.active.red{border-color:var(--bad)}
-  #alert .ic{font-size:34px}
-  #alert .tx{flex:1}
-  #alert .ty{font-size:18px;font-weight:700}
+  #alert.active.red{border-color:var(--bad);box-shadow:0 0 0 2px rgba(255,59,48,.35)}
+  #alert.active.rl{border-color:var(--rl)}
+  #alert .ic{font-size:36px}
+  #alert .tx{flex:1;min-width:0}
+  #alert .ty{font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #alert .ds{font-size:30px;font-weight:800}
   #alert .lim{font-size:12px;color:var(--mut)}
   #alert.active.red .ds{color:var(--bad)}
-  /* bottom bar */
   #bar{position:absolute;left:0;right:0;bottom:0;z-index:1000;display:flex;gap:8px;padding:8px;align-items:center}
   button{background:#23272f;color:var(--fg);border:1px solid #3a3f4a;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:600;cursor:pointer}
   button:active{background:#2f343d}
@@ -38,9 +37,15 @@
   button.on{background:var(--warn);border-color:var(--warn);color:#1a1206}
   select{background:#23272f;color:var(--fg);border:1px solid #3a3f4a;border-radius:12px;padding:12px;font-size:15px}
   #status{flex:1;font-size:12px;color:var(--mut);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #panel{position:absolute;top:0;right:0;bottom:0;width:280px;max-width:86%;z-index:1500;background:#15181e;border-left:1px solid #2a2e37;padding:16px;overflow:auto;transform:translateX(102%);transition:transform .2s}
+  #panel.open{transform:none}
+  #panel h3{margin:6px 0 4px;font-size:13px;text-transform:uppercase;color:var(--mut);letter-spacing:.5px}
+  .tog{display:flex;align-items:center;gap:10px;padding:9px 0;font-size:15px;border-bottom:1px solid #20242c}
+  .tog .pill{width:12px;height:12px;border-radius:50%}
+  .tog input{width:20px;height:20px}
+  .tog .cnt{margin-left:auto;color:var(--mut);font-size:12px}
   #start{position:absolute;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--bg);text-align:center;padding:24px}
-  #start h1{margin:0;font-size:30px}
-  #start p{color:var(--mut);max-width:420px;margin:0}
+  #start h1{margin:0;font-size:30px} #start p{color:var(--mut);max-width:430px;margin:0}
   .big{font-size:20px;padding:18px 34px}
 </style>
 </head>
@@ -48,151 +53,136 @@
 <div id="map"></div>
 <div id="hud">
   <div class="card" id="spd"><div class="v" id="spdv">--</div><div class="u" id="spdu">KM/H</div></div>
-  <div class="card" id="alert"><div class="ic" id="aic">🛰️</div><div class="tx"><div class="ty" id="aty">No camera ahead</div><div class="ds" id="ads"></div><div class="lim" id="alim"></div></div></div>
+  <div class="card" id="alert"><div class="ic" id="aic">🛰️</div><div class="tx"><div class="ty" id="aty">…</div><div class="ds" id="ads"></div><div class="lim" id="alim"></div></div></div>
 </div>
 <div id="bar">
-  <button id="sound" class="on" title="sound">🔊</button>
-  <select id="lang" title="voice language">
-    <option value="en-US">English</option>
-    <option value="ru-RU">Русский</option>
-    <option value="he-IL">עברית</option>
-    <option value="ar">العربية</option>
+  <button id="sound" class="on">🔊</button>
+  <select id="lang">
+    <option value="en-US">English</option><option value="ru-RU">Русский</option>
+    <option value="he-IL">עברית</option><option value="ar">العربية</option>
   </select>
   <button id="recenter">📍</button>
+  <button id="cog">⚙</button>
   <div id="status">idle</div>
+</div>
+<div id="panel">
+  <h3>Категории оповещений</h3>
+  <div id="cats"></div>
+  <h3>Поездка</h3>
+  <div class="tog">Превышений <span class="cnt" id="overcnt">0</span></div>
+  <div class="tog">Камер пройдено <span class="cnt" id="passcnt">0</span></div>
+  <div class="tog">Камер всего <span class="cnt" id="totalcnt">0</span></div>
+  <p style="color:var(--mut);font-size:12px">Помощник водителю. Покрытие неполное — следите за дорогой и соблюдайте ПДД.</p>
 </div>
 <div id="start">
   <h1>🛰️ Cyclops Drive</h1>
-  <p>Голосовой антирадар по GPS вашего авто. Камеры контроля скорости и красного света Израиля (база устройства + OSM). Работает офлайн после первой загрузки.</p>
+  <p>Голосовой антирадар по GPS авто: камеры скорости, <b>красный свет/светофоры</b>, средняя скорость, мобильные. Работает офлайн после первой загрузки.</p>
   <button class="primary big" id="go">▶ Старт</button>
-  <p style="font-size:12px">Нажатие нужно, чтобы разрешить GPS, звук и не гас экран. Это не отменяет ПДД — следите за дорогой.</p>
+  <p style="font-size:12px">Разрешите GPS и звук. Это не отменяет ПДД — следите за дорогой.</p>
 </div>
 
+<script src="phrases.js"></script>
 <script>
 const $=id=>document.getElementById(id);
-let cams=[], voices=[], lang='en-US', sound=true, wakeLock=null, follow=true;
-let me_lat=null, me_lon=null;
+const CATS=['redlight','speed','avg','mobile','fixed','camera','decoy'];
+const COL={redlight:'#ff5a3c',speed:'#ff4d4d',avg:'#ff7a1a',mobile:'#c065ff',fixed:'#3aa0ff',camera:'#5b8def',decoy:'#9b59b6'};
+const ICON={redlight:'🚦',speed:'📷',avg:'📐',mobile:'🚓',fixed:'📍',camera:'⚠️',decoy:'🎭'};
+let cams=[], lang='en-US', sound=true, wakeLock=null, follow=true, me_lat=null,me_lon=null;
+let enabled=JSON.parse(localStorage.getItem('cy_cats')||'null')||Object.fromEntries(CATS.map(c=>[c,true]));
+lang=localStorage.getItem('cy_lang')||lang; sound=localStorage.getItem('cy_sound')!=='0';
+let overCount=0, passCount=0;
 
-// ---------- i18n phrases ----------
-const T={
- 'en-US':{speed:'Speed camera',redlight:'Red light camera',avg:'Average speed camera',camera:'Camera',decoy:'Dummy camera',
-   ahead:(t,d)=>`${t} ahead, ${d} meters`, over:(l)=>`Reduce speed, limit ${l}`, noc:'No camera ahead', units:'KM/H'},
- 'ru-RU':{speed:'Камера контроля скорости',redlight:'Камера на красный свет',avg:'Камера средней скорости',camera:'Камера',decoy:'Камера-обманка',
-   ahead:(t,d)=>`${t}, ${d} метров`, over:(l)=>`Снизьте скорость, лимит ${l}`, noc:'Камер впереди нет', units:'КМ/Ч'},
- 'he-IL':{speed:'מצלמת מהירות',redlight:'מצלמת רמזור',avg:'מצלמת מהירות ממוצעת',camera:'מצלמה',decoy:'מצלמת דמה',
-   ahead:(t,d)=>`${t} מלפנים, ${d} מטר`, over:(l)=>`האט, מגבלה ${l}`, noc:'אין מצלמה מלפנים', units:'קמ"ש'},
- 'ar':{speed:'كاميرا سرعة',redlight:'كاميرا ضوء أحمر',avg:'كاميرا سرعة متوسطة',camera:'كاميرا',decoy:'كاميرا وهمية',
-   ahead:(t,d)=>`${t} أمامك، ${d} متر`, over:(l)=>`خفف السرعة، الحد ${l}`, noc:'لا كاميرا أمامك', units:'كم/س'}};
-const ICON={speed:'📷',redlight:'🚦',avg:'📐',camera:'⚠️',decoy:'🎭'};
-
-// ---------- speech ----------
-function loadVoices(){ voices=speechSynthesis.getVoices(); }
-speechSynthesis.onvoiceschanged=loadVoices; loadVoices();
+// ---- speech ----
+let voices=[]; const loadV=()=>voices=speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged=loadV; loadV();
 let lastSpeak=0;
-function say(txt){
-  if(!sound) return;
-  const now=Date.now(); if(now-lastSpeak<1200) return; lastSpeak=now;
-  try{ const u=new SpeechSynthesisUtterance(txt); u.lang=lang; u.rate=1.0; u.volume=1;
-    const v=voices.find(v=>v.lang&&v.lang.toLowerCase().startsWith(lang.toLowerCase().slice(0,2)));
-    if(v)u.voice=v; speechSynthesis.cancel(); speechSynthesis.speak(u);
-  }catch(e){}
-}
+function say(txt){ if(!sound||!txt)return; const now=Date.now(); if(now-lastSpeak<1100)return; lastSpeak=now;
+  try{const u=new SpeechSynthesisUtterance(txt);u.lang=lang;u.rate=1;u.volume=1;
+    const v=voices.find(v=>v.lang&&v.lang.toLowerCase().startsWith(lang.slice(0,2)));if(v)u.voice=v;
+    speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
+function P(){ return window.PHRASES[lang]||window.PHRASES['en-US']; }
+function fill(t,o){return (t||'').replace('{type}',o.type||'').replace('{dist}',o.dist??'').replace('{limit}',o.limit??'');}
 
-// ---------- geo math ----------
-const R=6371000, D2R=Math.PI/180;
-function hav(la1,lo1,la2,lo2){const a=Math.sin((la2-la1)*D2R/2)**2+Math.cos(la1*D2R)*Math.cos(la2*D2R)*Math.sin((lo2-lo1)*D2R/2)**2;return 2*R*Math.asin(Math.sqrt(a));}
-function bearing(la1,lo1,la2,lo2){const y=Math.sin((lo2-lo1)*D2R)*Math.cos(la2*D2R);const x=Math.cos(la1*D2R)*Math.sin(la2*D2R)-Math.sin(la1*D2R)*Math.cos(la2*D2R)*Math.cos((lo2-lo1)*D2R);return (Math.atan2(y,x)/D2R+360)%360;}
-function angdiff(a,b){let d=Math.abs(a-b)%360;return d>180?360-d:d;}
+// ---- geo math ----
+const R=6371000,D2R=Math.PI/180;
+const hav=(a,b,c,d)=>{const x=Math.sin((c-a)*D2R/2)**2+Math.cos(a*D2R)*Math.cos(c*D2R)*Math.sin((d-b)*D2R/2)**2;return 2*R*Math.asin(Math.sqrt(x));};
+const brg=(a,b,c,d)=>{const y=Math.sin((d-b)*D2R)*Math.cos(c*D2R),x=Math.cos(a*D2R)*Math.sin(c*D2R)-Math.sin(a*D2R)*Math.cos(c*D2R)*Math.cos((d-b)*D2R);return(Math.atan2(y,x)/D2R+360)%360;};
+const adiff=(a,b)=>{let d=Math.abs(a-b)%360;return d>180?360-d:d;};
 
-// ---------- map ----------
+// ---- map ----
 const map=L.map('map',{zoomControl:false,attributionControl:false}).setView([31.9,34.9],14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
-const camLayer=L.layerGroup().addTo(map);
-const COL={speed:'#ff4d4d',redlight:'#ffb000',avg:'#ff7a1a',camera:'#5b8def',decoy:'#9b59b6'};
-let meMarker=null, meBeam=null;
-function drawCams(){
-  for(const c of cams){
-    const col=COL[c.t]||COL.camera;
-    L.circleMarker([c.lat,c.lon],{radius:4,color:col,weight:1.5,fillColor:col,fillOpacity:.6}).addTo(camLayer);
-  }
-}
+const camLayer=L.layerGroup().addTo(map); let meMarker=null;
+function drawCams(){ camLayer.clearLayers();
+  for(const c of cams){ if(!enabled[c.t])continue; const col=COL[c.t]||COL.camera;
+    L.circleMarker([c.lat,c.lon],{radius:4,color:col,weight:1.5,fillColor:col,fillOpacity:.6}).addTo(camLayer);}}
 
-// ---------- alert engine ----------
-const LEAD_SEC=18, MIN_LEAD=180, MAX_LEAD=900, PASS_R=55;
-const state=new Map();          // camIdx -> {announced, passed, mind}
+// ---- engine ----
+const LEAD_SEC=18,MIN_LEAD=180,MAX_LEAD=900,PASS_R=55,ZONE_R=120;
+const st=new Map();
 function tick(la,lo,spd_mps,heading){
-  me_lat=la; me_lon=lo;
-  const kmh=Math.max(0,(spd_mps||0)*3.6);
+  me_lat=la;me_lon=lo; const kmh=Math.max(0,(spd_mps||0)*3.6);
   $('spdv').textContent=Math.round(kmh);
   const lead=Math.min(MAX_LEAD,Math.max(MIN_LEAD,(spd_mps||0)*LEAD_SEC));
-  let best=null, bestd=1e9;
-  for(let i=0;i<cams.length;i++){
-    const c=cams[i]; const d=hav(la,lo,c.lat,c.lon);
-    if(d>1600){ if(state.has(i)&&d>1200)state.delete(i); continue; }
-    let ahead=true;
-    if(kmh>6 && heading!=null){ ahead=angdiff(bearing(la,lo,c.lat,c.lon),heading)<55; }
-    const st=state.get(i)||{announced:false,passed:false,mind:d}; st.mind=Math.min(st.mind,d);
-    // pass detection
-    if(d<PASS_R) st.near=true;
-    if(st.near && d>st.mind+40 && !st.passed){ st.passed=true; }
-    state.set(i,st);
-    if(!ahead||st.passed) continue;
-    // announce on entering lead zone
-    if(!st.announced && d<=lead){
-      st.announced=true; state.set(i,st);
-      const ty=T[lang][c.t]||T[lang].camera;
-      say(T[lang].ahead(ty, Math.round(d/50)*50));
+  let best=null,bestd=1e9;
+  for(let i=0;i<cams.length;i++){const c=cams[i]; if(!enabled[c.t])continue;
+    const d=hav(la,lo,c.lat,c.lon); if(d>1700){if(st.has(i)&&d>1300)st.delete(i);continue;}
+    let ahead=true; if(kmh>6&&heading!=null)ahead=adiff(brg(la,lo,c.lat,c.lon),heading)<55;
+    const s=st.get(i)||{a:false,passed:false,mind:d,inzone:false,over:false}; s.mind=Math.min(s.mind,d);
+    // zone enter/exit (avg & mobile)
+    if(c.t==='avg'||c.t==='mobile'){
+      if(d<ZONE_R&&!s.inzone){s.inzone=true;say(fill(P().tpl.enter,{type:P().names[c.t]}));}
+      if(d>ZONE_R+60&&s.inzone){s.inzone=false;say(fill(P().tpl.exit,{type:P().names[c.t]}));}
     }
-    if(ahead && d<bestd){ bestd=d; best={c,d,idx:i}; }
+    if(d<PASS_R)s.near=true;
+    if(s.near&&d>s.mind+40&&!s.passed){s.passed=true;passCount++;$('passcnt').textContent=passCount;}
+    st.set(i,s);
+    if(!ahead||s.passed)continue;
+    if(!s.a&&d<=lead){s.a=true;st.set(i,s); say(fill(P().tpl.ahead,{type:P().names[c.t],dist:Math.round(d/50)*50}));}
+    if(d<bestd){bestd=d;best={c,d,idx:i};}
   }
-  // overspeed
   let red=false;
-  if(best && best.c.s && kmh>best.c.s+5 && best.d<lead){ red=true; }
+  if(best&&best.c.s&&kmh>best.c.s+5&&best.d<lead)red=true;
   $('spd').classList.toggle('over',red);
-  // HUD
   const al=$('alert');
-  if(best){
-    al.classList.add('active'); al.classList.toggle('red',red);
-    $('aic').textContent=ICON[best.c.t]||ICON.camera;
-    $('aty').textContent=T[lang][best.c.t]||T[lang].camera;
-    $('ads').textContent=Math.round(best.d)+' m';
-    $('alim').textContent=best.c.s?('limit '+best.c.s+' km/h'):'';
-    if(red){ const st=state.get(best.idx); if(!st.overSaid){st.overSaid=true;state.set(best.idx,st);say(T[lang].over(best.c.s));} }
-  }else{
-    al.classList.remove('active','red'); $('aic').textContent='🛰️';
-    $('aty').textContent=T[lang].noc; $('ads').textContent=''; $('alim').textContent='';
-  }
-  // marker
+  if(best){al.classList.add('active'); al.classList.toggle('red',red); al.classList.toggle('rl',best.c.t==='redlight'&&!red);
+    $('aic').textContent=ICON[best.c.t]||ICON.camera; $('aty').textContent=P().names[best.c.t]||P().names.camera;
+    $('ads').textContent=Math.round(best.d)+' m'; $('alim').textContent=best.c.s?('limit '+best.c.s+' km/h'):'';
+    if(red){const s=st.get(best.idx); if(!s.over){s.over=true;st.set(best.idx,s);overCount++;$('overcnt').textContent=overCount;say(fill(P().tpl.over,{limit:best.c.s}));}}
+  }else{al.classList.remove('active','red','rl');$('aic').textContent='🛰️';$('aty').textContent=P().noc;$('ads').textContent='';$('alim').textContent='';}
   const ll=[la,lo];
-  if(!meMarker){ meMarker=L.circleMarker(ll,{radius:8,color:'#fff',weight:2,fillColor:'#1e90ff',fillOpacity:1}).addTo(map); }
-  else meMarker.setLatLng(ll);
-  if(follow) map.setView(ll, Math.max(map.getZoom(),15), {animate:false});
-  $('status').textContent=`GPS ${la.toFixed(4)},${lo.toFixed(4)} · ${Math.round(kmh)}km/h · ${cams.length} cams`;
+  if(!meMarker)meMarker=L.circleMarker(ll,{radius:8,color:'#fff',weight:2,fillColor:'#1e90ff',fillOpacity:1}).addTo(map); else meMarker.setLatLng(ll);
+  if(follow)map.setView(ll,Math.max(map.getZoom(),15),{animate:false});
+  $('status').textContent=`${la.toFixed(4)},${lo.toFixed(4)} · ${Math.round(kmh)}km/h`;
 }
 
-// ---------- start ----------
-async function start(){
-  $('start').style.display='none';
-  $('lang').value=lang; $('spdu').textContent=T[lang].units;
-  try{ wakeLock=await navigator.wakeLock.request('screen'); }catch(e){}
-  document.addEventListener('visibilitychange',async()=>{ if(document.visibilityState==='visible'){try{wakeLock=await navigator.wakeLock.request('screen')}catch(e){}} });
-  say(' '); // unlock speech on gesture
-  if(!navigator.geolocation){ $('status').textContent='no geolocation'; return; }
-  navigator.geolocation.watchPosition(p=>{
-    tick(p.coords.latitude,p.coords.longitude,p.coords.speed,p.coords.heading);
-  }, err=>{ $('status').textContent='GPS error: '+err.message; },
-  {enableHighAccuracy:true,maximumAge:1000,timeout:15000});
-}
+// ---- settings UI ----
+function buildCats(){const wrap=$('cats');wrap.innerHTML='';const cnt={};for(const c of cams)cnt[c.t]=(cnt[c.t]||0)+1;
+  for(const c of CATS){const row=document.createElement('label');row.className='tog';
+    row.innerHTML=`<span class="pill" style="background:${COL[c]}"></span>${ICON[c]} ${P().names[c]} <span class="cnt">${cnt[c]||0}</span>`;
+    const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!enabled[c];cb.style.order=-1;
+    cb.onchange=()=>{enabled[c]=cb.checked;localStorage.setItem('cy_cats',JSON.stringify(enabled));drawCams();};
+    row.prepend(cb);wrap.appendChild(row);} }
 
-// ---------- boot ----------
-fetch('cameras.json').then(r=>r.json()).then(j=>{cams=j;drawCams();$('status').textContent=cams.length+' cameras loaded';})
-  .catch(e=>$('status').textContent='cameras load failed');
+// ---- start ----
+async function start(){$('start').style.display='none';$('lang').value=lang;$('spdu').textContent=P().units;$('aty').textContent=P().noc;
+  try{wakeLock=await navigator.wakeLock.request('screen');}catch(e){}
+  document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'){try{wakeLock=await navigator.wakeLock.request('screen')}catch(e){}}});
+  say(' ');
+  if(!navigator.geolocation){$('status').textContent='no geolocation';return;}
+  navigator.geolocation.watchPosition(p=>tick(p.coords.latitude,p.coords.longitude,p.coords.speed,p.coords.heading),
+    e=>$('status').textContent='GPS: '+e.message,{enableHighAccuracy:true,maximumAge:1000,timeout:15000});}
+
+// ---- boot ----
+function afterData(){$('totalcnt').textContent=cams.length;drawCams();buildCats();$('status').textContent=cams.length+' cameras';}
+fetch('cameras.json').then(r=>r.json()).then(j=>{cams=j;afterData();}).catch(()=>$('status').textContent='data load failed');
 $('go').onclick=start;
-$('sound').onclick=()=>{sound=!sound;$('sound').textContent=sound?'🔊':'🔇';$('sound').classList.toggle('on',sound);if(sound)say(' ');};
-$('lang').onchange=e=>{lang=e.target.value;$('spdu').textContent=T[lang].units;};
+$('sound').textContent=sound?'🔊':'🔇';$('sound').classList.toggle('on',sound);
+$('sound').onclick=()=>{sound=!sound;localStorage.setItem('cy_sound',sound?'1':'0');$('sound').textContent=sound?'🔊':'🔇';$('sound').classList.toggle('on',sound);if(sound)say(' ');};
+$('lang').value=lang;$('lang').onchange=e=>{lang=e.target.value;localStorage.setItem('cy_lang',lang);$('spdu').textContent=P().units;buildCats();};
 $('recenter').onclick=()=>{follow=true;if(me_lat)map.setView([me_lat,me_lon],16);};
+$('cog').onclick=()=>$('panel').classList.toggle('open');
 map.on('dragstart',()=>follow=false);
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
 </html>
