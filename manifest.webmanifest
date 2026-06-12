@@ -1,0 +1,14 @@
+{
+  "name": "Cyclops Drive — camera alerts",
+  "short_name": "Cyclops",
+  "description": "GPS speed/red-light camera voice alerts for Israel (device DB + OSM).",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
