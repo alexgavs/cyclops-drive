@@ -1,5 +1,5 @@
 // Cyclops Drive service worker — offline app shell + camera DB, cached map tiles.
-const V = 'cyclops-v3';
+const V = 'cyclops-v4';
 const SHELL = [
   './', './index.html', './cameras.json', './phrases.js', './manifest.webmanifest', './icon.svg',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
@@ -24,9 +24,9 @@ self.addEventListener('fetch', e => {
     }));
     return;
   }
-  // app shell + data: cache-first, fall back to network
-  e.respondWith(caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {
+  // App shell + data: network-first so deployed updates are picked up automatically.
+  e.respondWith(fetch(e.request).then(res => {
     if (res.ok && e.request.method === 'GET') { const cp = res.clone(); caches.open(V).then(c => c.put(e.request, cp)); }
     return res;
-  }).catch(() => hit)));
+  }).catch(() => caches.match(e.request)));
 });
