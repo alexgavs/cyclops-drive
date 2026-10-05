@@ -189,7 +189,7 @@ $('sound').onclick=()=>{sound=!sound;localStorage.setItem('cy_sound',sound?'1':'
 $('lang').value=lang;$('lang').onchange=e=>{lang=e.target.value;localStorage.setItem('cy_lang',lang);$('spdu').textContent=P().units;buildCats();};
 $('test').onclick=()=>{unlockAudio();loadV();if(!sound){sound=true;localStorage.setItem('cy_sound','1');$('sound').textContent='🔊';$('sound').classList.add('on');}
   const ph=P();beep(660,.15);say(fill(ph.tpl.ahead,{type:ph.names.redlight,dist:300}),true);
-  $('panel').classList.add('open');setTimeout(()=>$('status').textContent=speechDiag(),500);};
+  setTimeout(()=>$('status').textContent=speechDiag(),500);};
 $('recenter').onclick=()=>{follow=true;if(me_lat)map.setView([me_lat,me_lon],16);};
 const closePanel=()=>$('panel').classList.remove('open');
 $('panelClose').onclick=closePanel;
