@@ -1,0 +1,12 @@
+name = "cyclops-drive-presence"
+main = "worker.js"
+compatibility_date = "2026-10-05"
+
+[durable_objects]
+bindings = [
+  { name = "PRESENCE", class_name = "PresenceRoom" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PresenceRoom"]
