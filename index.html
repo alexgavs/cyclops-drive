@@ -40,6 +40,7 @@
   #panel{position:absolute;top:0;right:0;bottom:0;width:280px;max-width:86%;z-index:1500;background:#15181e;border-left:1px solid #2a2e37;padding:16px;overflow:auto;transform:translateX(102%);transition:transform .2s}
   #panel.open{transform:none}
   #panel h3{margin:6px 0 4px;font-size:13px;text-transform:uppercase;color:var(--mut);letter-spacing:.5px}
+  #panelClose{position:sticky;top:0;float:right;z-index:1;width:42px;height:42px;padding:0;border-radius:50%;font-size:24px;line-height:40px}
   .tog{display:flex;align-items:center;gap:10px;padding:9px 0;font-size:15px;border-bottom:1px solid #20242c}
   .tog .pill{width:12px;height:12px;border-radius:50%}
   .tog input{width:20px;height:20px}
@@ -189,8 +190,11 @@ $('test').onclick=()=>{unlockAudio();loadV();if(!sound){sound=true;localStorage.
   const ph=P();beep(660,.15);say(fill(ph.tpl.ahead,{type:ph.names.redlight,dist:300}),true);
   $('panel').classList.add('open');setTimeout(()=>$('status').textContent=speechDiag(),500);};
 $('recenter').onclick=()=>{follow=true;if(me_lat)map.setView([me_lat,me_lon],16);};
+const closePanel=()=>$('panel').classList.remove('open');
+$('panelClose').onclick=closePanel;
 $('cog').onclick=()=>$('panel').classList.toggle('open');
-map.on('dragstart',()=>follow=false);
+map.on('click',closePanel);
+map.on('dragstart',()=>{follow=false;closePanel();});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
